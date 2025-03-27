@@ -1,0 +1,8 @@
+venv/
+# Ignore Python bytecode files
+*.log
+*.tmp
+.vscode/
+test2.py
+*.db
+*.env
