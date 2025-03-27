@@ -2,9 +2,31 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 import time
+import sqlite3
 
+def base(driver):
+    global conn, cursor
+    conn = sqlite3.connect("grades.db")
+    cursor = conn.cursor()
+    # Создание таблицы для хранения данных об оценках
+    # Если таблица уже существует, она не будет создана повторно
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS grades (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject TEXT NOT NULL,
+    grade TEXT NOT NULL)""")
+    # Создание таблицы для хранения данных об отсутствии
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS absences (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        subject TEXT NOT NULL,
+        absence_count INTEGER NOT NULL
+    )""")
+    conn.commit()
+    parsing(driver, conn, cursor)
+    conn.close()
 
-def parsing(driver):
+def parsing(driver, conn, cursor):
     print('сработало')
     time.sleep(4)
     if not driver.current_url.startswith('https://dnevnik.egov66.ru/'):
@@ -23,18 +45,25 @@ def parsing(driver):
     rows = driver.find_elements(By.XPATH, "//tr")
     for row in rows:
         try:
-            subject = row.find_element(By.CLASS_NAME, "_discipline_875gj_34")
-            subject_el = subject.text
+            subject = row.find_element(By.CLASS_NAME, "_discipline_875gj_34").text
+            
             
             grades = row.find_elements(By.CLASS_NAME, "_grade_1qkyu_5")
             grades_el = [grade.get_attribute("textContent").strip() for grade in grades if grade.get_attribute("textContent").strip() != '']
-            grades_data[subject_el]= list(map(int, grades_el))
+            grades_data[subject]= list(map(int, grades_el))
             
             absences = row.find_elements(By.CLASS_NAME, "_gap30_19hvj_93")
             absence_el = [absence.get_attribute("textContent").strip() for absence in absences if absence.get_attribute("textContent").strip() in ['У', 'Н', 'Б']]
-            absences_data[subject_el] = len(absence_el)
+            absences_data[subject] = len(absence_el)
         except:
             continue
-    print(grades_data)
-    print(absences_data)
+        
+    for subject, grades in grades_data.items():
+        grades_str = " ".join(map(str, grades))
+        cursor.execute("INSERT INTO grades (subject, grade) VALUES (?, ?)", (subject, grades_str))
+        
+    for subject, absence_count in absences_data.items():
+        cursor.execute("INSERT OR IGNORE INTO absences (subject, absence_count) VALUES (?, ?)", (subject, absence_count))
+        
+    conn.commit()
     
