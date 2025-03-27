@@ -32,6 +32,5 @@ def firstlogin():
     fa2.clear()
     fa2.send_keys(current_code)
     
-    
-    parser.parsing(driver)
+    parser.base(driver)
 firstlogin()
