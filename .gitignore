@@ -6,3 +6,4 @@ venv/
 test2.py
 *.db
 *.env
+__pycache__/
