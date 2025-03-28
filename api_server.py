@@ -12,11 +12,11 @@ def update_grades():
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
-    user_id = data.get("user_id")
+    uuid = data.get("uuid")  # Ожидаем UUID вместо user_id
     grades = data.get("grades")  # Ожидается словарь {subject: grades}
     absences = data.get("absences")  # Ожидается словарь {subject: absence_count}
 
-    if not user_id or not grades or not absences:
+    if not uuid or not grades or not absences:
         return jsonify({"error": "Invalid data format"}), 400
 
     conn = sqlite3.connect(DB_PATH)
@@ -25,23 +25,23 @@ def update_grades():
     # Обновление оценок
     for subject, grade_list in grades.items():
         grades_str = " ".join(map(str, grade_list))
-        cursor.execute("SELECT grade FROM grades WHERE user_id = ? AND subject = ?", (user_id, subject))
+        cursor.execute("SELECT grade FROM grades WHERE uuid = ? AND subject = ?", (uuid, subject))
         result = cursor.fetchone()
 
         if result is None:
-            cursor.execute("INSERT INTO grades (user_id, subject, grade) VALUES (?, ?, ?)", (user_id, subject, grades_str))
+            cursor.execute("INSERT INTO grades (uuid, subject, grade) VALUES (?, ?, ?)", (uuid, subject, grades_str))
         elif result[0] != grades_str:
-            cursor.execute("UPDATE grades SET grade = ? WHERE user_id = ? AND subject = ?", (grades_str, user_id, subject))
+            cursor.execute("UPDATE grades SET grade = ? WHERE uuid = ? AND subject = ?", (grades_str, uuid, subject))
 
     # Обновление пропусков
     for subject, absence_count in absences.items():
-        cursor.execute("SELECT absence_count FROM absences WHERE user_id = ? AND subject = ?", (user_id, subject))
+        cursor.execute("SELECT absence_count FROM absences WHERE uuid = ? AND subject = ?", (uuid, subject))
         result = cursor.fetchone()
 
         if result is None:
-            cursor.execute("INSERT INTO absences (user_id, subject, absence_count) VALUES (?, ?, ?)", (user_id, subject, absence_count))
+            cursor.execute("INSERT INTO absences (uuid, subject, absence_count) VALUES (?, ?, ?)", (uuid, subject, absence_count))
         elif result[0] != absence_count:
-            cursor.execute("UPDATE absences SET absence_count = ? WHERE user_id = ? AND subject = ?", (absence_count, user_id, subject))
+            cursor.execute("UPDATE absences SET absence_count = ? WHERE uuid = ? AND subject = ?", (absence_count, uuid, subject))
 
     conn.commit()
     conn.close()
@@ -49,4 +49,4 @@ def update_grades():
     return jsonify({"message": "Data updated successfully"}), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=8880)
