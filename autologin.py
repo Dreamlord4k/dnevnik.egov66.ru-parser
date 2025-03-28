@@ -12,6 +12,7 @@ load_dotenv("database.env")
 LOGIN = os.getenv("LOGIN")
 PASSWD = os.getenv("PASSWORD")
 KEY = os.getenv("KEY")
+USER_ID = os.getenv("USER_ID")
 
 def firstlogin():
     totp = pyotp.TOTP(KEY)
@@ -73,7 +74,7 @@ def main():
     while True:
         try:
             # Запускаем парсер
-            parser.base(driver)
+            parser.changes(driver, USER_ID)
         except Exception as e:
             print(f"Ошибка: {e}. Выполняем релогин...")
             relogin(driver)
