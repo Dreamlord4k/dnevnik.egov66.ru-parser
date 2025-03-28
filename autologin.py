@@ -12,7 +12,7 @@ load_dotenv("database.env")
 LOGIN = os.getenv("LOGIN")
 PASSWD = os.getenv("PASSWORD")
 KEY = os.getenv("KEY")
-USER_ID = os.getenv("USER_ID")
+UUID = os.getenv("UUID")
 
 def firstlogin():
     totp = pyotp.TOTP(KEY)
@@ -52,21 +52,23 @@ def relogin(driver):
     totp = pyotp.TOTP(KEY)
     driver.get("https://dnevnik.egov66.ru")
     
-    WebDriverWait(driver, 60).until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'Войти через Госуслуги')]"))).click()
+    WebDriverWait(driver, 45).until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'Войти через Госуслуги')]"))).click()
     
     # Ввод пароля
-    password = WebDriverWait(driver, 60).until(EC.visibility_of_element_located((By.ID, "password")))
+    password = WebDriverWait(driver, 45).until(EC.visibility_of_element_located((By.ID, "password")))
     password.clear()
     password.send_keys(PASSWD)
     
     # Нажатие кнопки "Войти"
-    WebDriverWait(driver, 60).until(EC.element_to_be_clickable((By.XPATH, "//button[@class='plain-button plain-button_wide']"))).click()
+    WebDriverWait(driver, 45).until(EC.element_to_be_clickable((By.XPATH, "//button[@class='plain-button plain-button_wide']"))).click()
     
     # Ввод кода двухфакторной аутентификации
     current_code = totp.now()
-    fa2 = WebDriverWait(driver, 60).until(EC.visibility_of_element_located((By.XPATH, "//span[1]//input[1]")))
+    fa2 = WebDriverWait(driver, 45).until(EC.visibility_of_element_located((By.XPATH, "//span[1]//input[1]")))
     fa2.clear()
     fa2.send_keys(current_code)
+    return driver
+
 
 def main():
     driver = firstlogin()
@@ -74,10 +76,10 @@ def main():
     while True:
         try:
             # Запускаем парсер
-            parser.changes(driver, USER_ID)
+            parser.changes(driver, UUID)
         except Exception as e:
             print(f"Ошибка: {e}. Выполняем релогин...")
-            relogin(driver)
+            driver = relogin(driver)
 
 # Запуск программы
 if __name__ == "__main__":
