@@ -23,7 +23,7 @@ def base(driver):
         absence_count INTEGER NOT NULL
     )""")
     conn.commit()
-    parsing(driver, conn, cursor)
+    changes(driver, conn, cursor)
     conn.close()
 
 def parsing(driver, conn, cursor):
@@ -58,12 +58,35 @@ def parsing(driver, conn, cursor):
         except:
             continue
         
-    for subject, grades in grades_data.items():
-        grades_str = " ".join(map(str, grades))
-        cursor.execute("INSERT INTO grades (subject, grade) VALUES (?, ?)", (subject, grades_str))
-        
-    for subject, absence_count in absences_data.items():
-        cursor.execute("INSERT OR IGNORE INTO absences (subject, absence_count) VALUES (?, ?)", (subject, absence_count))
-        
-    conn.commit()
+    return grades_data, absences_data
     
+def changes(driver, conn, cursor):
+    last_grades_data = {}
+    last_absences_data = {}
+    
+    while True:
+        print("Проверка изменений...")
+        grades_data, absences_data = parsing(driver, conn, cursor)
+        
+        # Проверка изменений в оценках
+        if grades_data != last_grades_data:
+            print("Найдены новые данные об оценках!")
+            for subject, grades in grades_data.items():
+                if subject not in last_absences_data or grades != last_grades_data[subject]:
+                    grades_str = " ".join(map(str, grades))
+                    cursor.execute("INSERT INTO grades (subject, grade) VALUES (?, ?)", (subject, grades_str))
+            last_grades_data = grades_data.copy()
+        
+        # Проверка изменений в пропусках
+        if absences_data != last_absences_data:
+            print("Найдены новые данные о пропусках!")
+            for subject, absence_count in absences_data.items():
+                if subject not in last_absences_data or absence_count != last_absences_data[subject]:
+                    cursor.execute("INSERT OR IGNORE INTO absences (subject, absence_count) VALUES (?, ?)", (subject, absence_count))
+            last_absences_data = absences_data.copy()
+        
+        # Сохранение изменений в базе данных
+        conn.commit()
+        
+        # Задержка на 10 секунд
+        time.sleep(10)
