@@ -51,6 +51,8 @@ def relogin(driver):
     totp = pyotp.TOTP(KEY)
     driver.get("https://dnevnik.egov66.ru")
     
+    WebDriverWait(driver, 60).until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'Войти через Госуслуги')]"))).click()
+    
     # Ввод пароля
     password = WebDriverWait(driver, 60).until(EC.visibility_of_element_located((By.ID, "password")))
     password.clear()
