@@ -1,32 +1,27 @@
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from dotenv import load_dotenv
+import os
 import time
 import sqlite3
 
+# Загрузка user_id из файла database.env
+load_dotenv("database.env")
+USER_ID = os.getenv("USER_ID")
+
 def base(driver):
-    global conn, cursor
-    conn = sqlite3.connect("grades.db")
+    # Подключение к существующей базе данных
+    conn = sqlite3.connect("big_data.db")
     cursor = conn.cursor()
-    # Создание таблицы для хранения данных об оценках
-    # Если таблица уже существует, она не будет создана повторно
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS grades (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    subject TEXT NOT NULL,
-    grade TEXT NOT NULL)""")
-    # Создание таблицы для хранения данных об отсутствии
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS absences (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        subject TEXT NOT NULL,
-        absence_count INTEGER NOT NULL
-    )""")
-    conn.commit()
-    changes(driver, conn, cursor)
+
+    # Переход к обработке изменений
+    changes(driver, conn, cursor, USER_ID)
+
+    # Закрытие соединения
     conn.close()
 
-def parsing(driver, conn, cursor):
+def parsing(driver, conn, cursor, user_id):
     print('сработало')
     time.sleep(4)
     if not driver.current_url.startswith('https://dnevnik.egov66.ru/'):
@@ -39,19 +34,17 @@ def parsing(driver, conn, cursor):
     absences_data = {}
     time.sleep(3)
     
-    # header_elements = driver.find_elements(By.CLASS_NAME, "_gap0_19hvj_69")
-    # dates = [header.get_attribute("textContent").strip() for header in header_elements if header.get_attribute("textContent").strip()]    
-    
     rows = driver.find_elements(By.XPATH, "//tr")
     for row in rows:
         try:
             subject = row.find_element(By.CLASS_NAME, "_discipline_875gj_34").text
             
-            
+            # Извлекаем оценки
             grades = row.find_elements(By.CLASS_NAME, "_grade_1qkyu_5")
             grades_el = [grade.get_attribute("textContent").strip() for grade in grades if grade.get_attribute("textContent").strip() != '']
-            grades_data[subject]= list(map(int, grades_el))
+            grades_data[subject] = list(map(int, grades_el))
             
+            # Извлекаем пропуски
             absences = row.find_elements(By.CLASS_NAME, "_gap30_19hvj_93")
             absence_el = [absence.get_attribute("textContent").strip() for absence in absences if absence.get_attribute("textContent").strip() in ['У', 'Н', 'Б']]
             absences_data[subject] = len(absence_el)
@@ -59,31 +52,41 @@ def parsing(driver, conn, cursor):
             continue
         
     return grades_data, absences_data
-    
-def changes(driver, conn, cursor):
-    last_grades_data = {}
-    last_absences_data = {}
+
+def changes(driver, conn, cursor, user_id):
     
     while True:
         print("Проверка изменений...")
-        grades_data, absences_data = parsing(driver, conn, cursor)
+        grades_data, absences_data = parsing(driver, conn, cursor, user_id)
         
-        # Проверка изменений в оценках
-        if grades_data != last_grades_data:
-            print("Найдены новые данные об оценках!")
-            for subject, grades in grades_data.items():
-                if subject not in last_absences_data or grades != last_grades_data[subject]:
-                    grades_str = " ".join(map(str, grades))
-                    cursor.execute("INSERT INTO grades (subject, grade) VALUES (?, ?)", (subject, grades_str))
-            last_grades_data = grades_data.copy()
+        # Обновление оценок
+        for subject, grades in grades_data.items():
+            grades_str = " ".join(map(str, grades))
+            cursor.execute("SELECT grade FROM grades WHERE user_id = ? AND subject = ?", (user_id, subject))
+            result = cursor.fetchone()
+            
+            if result is None:
+                # Добавляем новую запись
+                cursor.execute("INSERT INTO grades (user_id, subject, grade) VALUES (?, ?, ?)", (user_id, subject, grades_str))
+                print(f"Добавлены новые оценки по предмету {subject}: {grades_str}")
+            elif result[0] != grades_str:
+                # Обновляем существующую запись
+                cursor.execute("UPDATE grades SET grade = ? WHERE user_id = ? AND subject = ?", (grades_str, user_id, subject))
+                print(f"Обновлены оценки по предмету {subject}: {grades_str}")
         
-        # Проверка изменений в пропусках
-        if absences_data != last_absences_data:
-            print("Найдены новые данные о пропусках!")
-            for subject, absence_count in absences_data.items():
-                if subject not in last_absences_data or absence_count != last_absences_data[subject]:
-                    cursor.execute("INSERT OR IGNORE INTO absences (subject, absence_count) VALUES (?, ?)", (subject, absence_count))
-            last_absences_data = absences_data.copy()
+        # Обновление пропусков
+        for subject, absence_count in absences_data.items():
+            cursor.execute("SELECT absence_count FROM absences WHERE user_id = ? AND subject = ?", (user_id, subject))
+            result = cursor.fetchone()
+            
+            if result is None:
+                # Добавляем новую запись
+                cursor.execute("INSERT INTO absences (user_id, subject, absence_count) VALUES (?, ?, ?)", (user_id, subject, absence_count))
+                print(f"Добавлены новые пропуски по предмету {subject}: {absence_count}")
+            elif result[0] != absence_count:
+                # Обновляем существующую запись
+                cursor.execute("UPDATE absences SET absence_count = ? WHERE user_id = ? AND subject = ?", (absence_count, user_id, subject))
+                print(f"Обновлены пропуски по предмету {subject}: {absence_count}")
         
         # Сохранение изменений в базе данных
         conn.commit()
