@@ -19,13 +19,13 @@
  
 ## Структура проекта  
 dnevnik-parser-2.0/  
-├── [autologin.py](клиент)    # Авторизация и управление сессией  
-├── [parser.py](клиент)       # Парсинг данных и отправка на сервер  
-├── [telegram_bot.py](сервер) # Telegram-бот для уведомлений  
-├── [api_server.py](сервер)   # API-сервер для обработки данных  
-├── [webdriver.py](клиент)    # Инициализация базы данных  
-├── [requirements.txt]        # Зависимости проекта  
-├── database.env              # Локальная база данных  
+├── [autologin.py](autologin.py)    # Авторизация и управление сессией (клиент)  
+├── [parser.py](parser.py)       # Парсинг данных и отправка на сервер (клиент)  
+├── [telegram_bot.py](telegram_bot.py) # Telegram-бот для уведомлений (сервер)  
+├── [api_server.py](api_server.py)   # API-сервер для обработки данных (сервер)  
+├── [webdriver.py](webdriver.py)    # Инициализация базы данных (клиент)  
+├── [requirements.txt](requirements.txt) # Зависимости проекта  
+├── database.env              # Локальная база данных  (клиент)  
 └── README.md                 # Документация проекта  
  
 
