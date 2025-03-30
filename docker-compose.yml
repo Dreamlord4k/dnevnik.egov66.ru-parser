@@ -1,0 +1,8 @@
+services:
+  app:
+    build: .
+    container_name: dnevnik-parser
+    environment:
+      - RUNNING_IN_DOCKER=true
+    volumes:
+      - .:/app
