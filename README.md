@@ -57,9 +57,8 @@ pip --version
 python -m ensurepip --upgrade
 ```
 # 2. **Установка парсера**
-Для установки парсера просто скачайте последний доступный архив из [reliases](https://github.com/Dreamlord4k/dnevnik.egov66.ru-parser/releases).
-После чего распакуйте архив в любую удобную вам папку.
-
+Для установки парсера просто скачайте последний доступный архив из [reliases](https://github.com/Dreamlord4k/dnevnik.egov66.ru-parser/releases).  
+После чего распакуйте архив в любую удобную вам папку.  
   
 # 3. **Настройка файла database.env**
    1. В папке проекта найдите файл [database1.env](database.env).   
