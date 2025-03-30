@@ -10,10 +10,9 @@
 
  
 
-## Схема работы:  
+## Общая схема работы:  
 
-![изображение](https://github.com/user-attachments/assets/36875bcd-4f7a-461b-b99f-d99c5d3ac089)
- 
+![изображение](https://github.com/user-attachments/assets/8001f5da-d9ed-4d22-a462-17bfc39c6a25)
 
 
  
