@@ -40,12 +40,13 @@ dnevnik-parser-2.0/
 
 ## Как пользоваться?  
   
-# 0. **Настраиваем Gosuslugi**
-Будет необходимо зайти в настройки gosuslug и изменить метод двухэтапной аутентификации:
-![NVIDIA_Overlay_6RLsfMkxQc](https://github.com/user-attachments/assets/e9479028-0a24-45d0-9eef-112e608d9e37)
-После чего скопировать ключ:
-![NVIDIA_Overlay_ZJ8UXgnUIc](https://github.com/user-attachments/assets/6510eab9-a354-4938-a837-567314b45986)
-в базу данных [database.env](database.env) в строку KEY
+# 0. **Настраиваем Gosuslugi**  
+Будет необходимо зайти в настройки gosuslug и изменить метод двухэтапной аутентификации:  
+![NVIDIA_Overlay_6RLsfMkxQc](https://github.com/user-attachments/assets/e9479028-0a24-45d0-9eef-112e608d9e37)  
+  
+После чего скопировать ключ в базу данных [database.env](database.env) в строку KEY:  
+![NVIDIA_Overlay_ZJ8UXgnUIc](https://github.com/user-attachments/assets/6510eab9-a354-4938-a837-567314b45986)  
+
 
 # 1. **Установка Python и pip**
 Убедитесь, что у вас установлен Python версии 3.10 или выше.  
