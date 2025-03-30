@@ -49,10 +49,13 @@ dnevnik-parser-2.0/
 python --version
 ```
 Проверьте, установлен ли pip, выполнив команду:
-   pip --version
+```
+pip --version
+```
 Если pip не установлен, установите его с помощью команды:
-   python -m ensurepip --upgrade
-
+```
+python -m ensurepip --upgrade
+```
 # 2. **Установка парсера**
 Для установки парсера просто скачайте последний доступный архив из [reliases]: https://github.com/Dreamlord4k/dnevnik.egov66.ru-parser/releases.
 После чего распакуйте архив в любую удобную вам папку.
@@ -75,13 +78,20 @@ python --version
 Если вы хотите выполнить эти шаги вручную:  
  1. Откройте терминал (или командную строку) в папке проекта.  
  2. Создайте виртуальное окружение:  
-    python -m venv venv  
+    ```
+    python -m venv venv
+    ```  
  3. Активируйте виртуальное окружение:
-    Windows:  
-       venv\Scripts\activate  
-    Linux/MacOS:  
-       source venv/bin/activate  
- 4. Установите зависимости из файла [requirements.txt](requirements.txt):  
+    Windows:
+       ```  
+       venv\Scripts\activate
+       ```  
+    Linux/MacOS:
+       ```  
+       source venv/bin/activate
+       ```  
+ 4. Установите зависимости из файла [requirements.txt](requirements.txt):
+    ```  
     pip install -r requirements.txt  
-
+    ```
 # Syntax Parser. Все права защищены.  
