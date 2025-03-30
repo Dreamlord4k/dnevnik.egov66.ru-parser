@@ -90,8 +90,7 @@ def check_changes(driver, uuid):
                 # Обновляем предыдущие данные
                 previous_grades_data = grades_data
                 previous_absences_data = absences_data
-            else:
-                logging.info("Изменений нет, данные не отправлены.")
+
 
             # Задержка на 10 секунд
             time.sleep(10)
