@@ -26,6 +26,7 @@ dnevnik-parser-2.0/
 ├── [requirements.txt](requirements.txt) # Зависимости проекта  
 ├── [database.env](database.env)              # Локальная база данных  (клиент)   
 ├── [start.cmd](start.cmd) # Файл для запуска парсера   
+├── [docker-compose.yml](docker-compose.yml) #интрукции для докера (для тех, кто использует docker)
 ├── parser.log # Логи парсера. Сюда будут выводиться все ошибки  
 └── [README.md](README.md)                 # Документация проекта  
  
