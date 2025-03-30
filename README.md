@@ -24,8 +24,9 @@ dnevnik-parser-2.0/
 ├── [api_server.py](api_server.py)   # API-сервер для обработки данных (сервер)  
 ├── [webdriver.py](webdriver.py)    # Инициализация базы данных (клиент)  
 ├── [requirements.txt](requirements.txt) # Зависимости проекта  
-├── [database.env](database.env)              # Локальная база данных  (клиент)  
-├── parser.log #логи парсера. Сюда будут выводиться все ошибки  
+├── [database.env](database.env)              # Локальная база данных  (клиент)   
+├── [start.cmd](start.cmd) # Файл для запуска парсера   
+├── parser.log # Логи парсера. Сюда будут выводиться все ошибки  
 └── [README.md](README.md)                 # Документация проекта  
  
   
@@ -45,6 +46,7 @@ dnevnik-parser-2.0/
 ![NVIDIA_Overlay_6RLsfMkxQc](https://github.com/user-attachments/assets/e9479028-0a24-45d0-9eef-112e608d9e37)  
   
 После чего скопировать ключ в базу данных [database.env](database.env) в строку KEY:  
+Также не забудьте отсканировать qr код в любом приложении-аутентификаторе(authy, google authenticator), чтобы не потерять доступ к gosuslug'ам  
 ![NVIDIA_Overlay_ZJ8UXgnUIc](https://github.com/user-attachments/assets/6510eab9-a354-4938-a837-567314b45986)  
   
 Затем, для получения уникального uuid нужно будет написать боту [@DnevnikEgov66_bot](https://t.me/DnevnikEgov66_bot).  
