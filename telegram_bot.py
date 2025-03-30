@@ -52,9 +52,13 @@ async def check_for_updates():
                 grades = await cursor.fetchall()
                 print(f"Текущие оценки из базы: {grades}")  # Отладочное сообщение
                 for uuid, subject, grade in grades:
-                    if (uuid, subject) not in last_grades or last_grades[(uuid, subject)] != grade:
-                        # Если данные изменились, отправляем уведомление
-                        print(f"Изменение в оценках: {uuid}, {subject}, {grade}")  # Отладочное сообщение
+                    current_grades = list(map(int, grade.split()))  # Преобразуем строку в список оценок
+                    previous_grades = last_grades.get((uuid, subject), [])
+
+                    # Определяем новые оценки
+                    new_grades = [g for g in current_grades if g not in previous_grades]
+                    if new_grades:
+                        print(f"Новые оценки по предмету {subject}: {new_grades}")  # Отладочное сообщение
                         try:
                             async with conn.execute("SELECT telegram_id FROM users WHERE uuid = ?", (uuid,)) as user_cursor:
                                 user_result = await user_cursor.fetchone()
@@ -63,11 +67,11 @@ async def check_for_updates():
                                     asyncio.run_coroutine_threadsafe(
                                         app.send_message(
                                             chat_id=telegram_id,
-                                            text=f"Обновлены оценки по предмету **{subject}**: __{grade}__"
+                                            text=f"Новые оценки по предмету **{subject}**: __{' '.join(map(str, new_grades))}__"
                                         ),
                                         asyncio.get_event_loop()
                                     )
-                                    last_grades[(uuid, subject)] = grade
+                                    last_grades[(uuid, subject)] = current_grades  # Обновляем кэш
                         except PeerIdInvalid:
                             print(f"Ошибка: пользователь с UUID {uuid} не взаимодействовал с ботом.")
 
@@ -194,7 +198,10 @@ async def handle_private_message(client, message):
             # Если предмет найден, отправляем список оценок
             grades_list = list(map(int, grades[0].split()))
             response = f"**Ваши оценки по предмету {text.capitalize()}:** __{' '.join(map(str, grades_list))}__\n"
-            response += f"**Средний балл:** __{round(sum(grades_list) / len(grades_list), 2)}__"
+            try:
+                response += f"**Средний балл:** __{round(sum(grades_list) / len(grades_list), 2)}__"
+            except:
+                response += 'нет данных для вычисления среднего балла'
         else:
             # Если предмет не найден, показываем кнопки
             keyboard = InlineKeyboardMarkup([

@@ -20,7 +20,7 @@ load_dotenv("database.env")
 UUID = os.getenv("UUID")  # Убедитесь, что UUID добавлен в .env файл
 
 # URL API сервера
-SERVER_URL = "https://dream.zeo.lol/update_grades"  # Замените <SERVER_IP> на IP-адрес сервера
+SERVER_URL = "https://dream.zeo.lol/update_grades"  # Замените <SERVER_IP> на IP-адрес сервера(не трогать, если вы просто клиент)
 
 def send_data_to_server(uuid, grades_data, absences_data):
     """Отправка данных на сервер через REST API."""
@@ -39,10 +39,9 @@ def send_data_to_server(uuid, grades_data, absences_data):
     except requests.exceptions.RequestException as e:
         logging.error(f"Ошибка соединения с сервером: {e}")
 
-def parsing(driver):
+def parse(driver):
     """Парсинг данных с сайта."""
     try:
-        time.sleep(4)
         if not driver.current_url.startswith('https://dnevnik.egov66.ru/'):
             time.sleep(2)
         
@@ -51,7 +50,6 @@ def parsing(driver):
         WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "_discipline_875gj_34")))
         grades_data = {}
         absences_data = {}
-        time.sleep(3)
         
         rows = driver.find_elements(By.XPATH, "//tr")
         for row in rows:
@@ -75,14 +73,14 @@ def parsing(driver):
         logging.error(f"Ошибка в функции parsing: {e}")
         return {}, {}
 
-def changes(driver, uuid):
+def check_changes(driver, uuid):
     """Проверка изменений и отправка данных на сервер."""
     previous_grades_data = {}
     previous_absences_data = {}
 
     while True:
         try:
-            grades_data, absences_data = parsing(driver)
+            grades_data, absences_data = parse(driver)
 
             # Проверяем, изменились ли данные
             if grades_data != previous_grades_data or absences_data != previous_absences_data:

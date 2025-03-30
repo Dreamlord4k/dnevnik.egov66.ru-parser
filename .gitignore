@@ -9,6 +9,5 @@ test2.py
 __pycache__/
 *.session
 DnevnikEgov66_bot.session-journal
-bazadannix.py
 big_data.db-shm
 big_data.db-wal

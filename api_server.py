@@ -12,7 +12,7 @@ def update_grades():
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
-    uuid = data.get("uuid")  # Ожидаем UUID вместо user_id
+    uuid = data.get("uuid")  # Ожидаем UUID
     grades = data.get("grades")  # Ожидается словарь {subject: grades}
     absences = data.get("absences")  # Ожидается словарь {subject: absence_count}
 
@@ -32,7 +32,7 @@ def update_grades():
             cursor.execute("INSERT INTO grades (uuid, subject, grade) VALUES (?, ?, ?)", (uuid, subject, grades_str))
         elif result[0] != grades_str:
             cursor.execute("UPDATE grades SET grade = ? WHERE uuid = ? AND subject = ?", (grades_str, uuid, subject))
-
+        conn.commit()
     # Обновление пропусков
     for subject, absence_count in absences.items():
         cursor.execute("SELECT absence_count FROM absences WHERE uuid = ? AND subject = ?", (uuid, subject))
@@ -42,7 +42,7 @@ def update_grades():
             cursor.execute("INSERT INTO absences (uuid, subject, absence_count) VALUES (?, ?, ?)", (uuid, subject, absence_count))
         elif result[0] != absence_count:
             cursor.execute("UPDATE absences SET absence_count = ? WHERE uuid = ? AND subject = ?", (absence_count, uuid, subject))
-
+        conn.commit()
     conn.commit()
     conn.close()
 

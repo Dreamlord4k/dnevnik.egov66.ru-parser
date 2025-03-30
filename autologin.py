@@ -15,19 +15,26 @@ PASSWD = os.getenv("PASSWORD")
 KEY = os.getenv("KEY")
 UUID = os.getenv("UUID")
 
-def firstlogin():
-    """Первичный вход в систему."""
-    logging.info("Запуск функции firstlogin.")
+
+LOGIN_BUTTON_FIRST = "//button[contains(text(),'Войти через Госуслуги')]"
+LOGIN_BUTTON_SECOND = "//button[@class='plain-button plain-button_wide']"
+CODE2FA = "//span[1]//input[1]"
+
+def login(driver=None):
+    """Универсальная функция для входа в систему."""
+    logging.info("Запуск функции login.")
     totp = pyotp.TOTP(KEY)
-    driver = get_driver()
+    # Если драйвер не передан, создаём новый
+    if driver is None:
+        driver = get_driver()
     driver.get("https://dnevnik.egov66.ru")
-    
     try:
         # Нажимаем "Войти через Госуслуги"
-        WebDriverWait(driver, 60).until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'Войти через Госуслуги')]"))).click()
+        WebDriverWait(driver, 60).until(EC.element_to_be_clickable((By.XPATH, LOGIN_BUTTON_FIRST))).click()
         logging.info("Кнопка 'Войти через Госуслуги' нажата.")
         
-        # Ввод логина
+        # Ввод логина (только если это первый вход)
+
         try:
             login = WebDriverWait(driver, 60).until(EC.visibility_of_element_located((By.ID, "login")))
             login.clear()
@@ -43,64 +50,33 @@ def firstlogin():
         logging.info("Пароль введён.")
         
         # Нажатие кнопки "Войти"
-        WebDriverWait(driver, 60).until(EC.element_to_be_clickable((By.XPATH, "//button[@class='plain-button plain-button_wide']"))).click()
+        WebDriverWait(driver, 60).until(EC.element_to_be_clickable((By.XPATH, LOGIN_BUTTON_SECOND))).click()
         logging.info("Кнопка 'Войти' нажата.")
         
         # Ввод кода двухфакторной аутентификации
         current_code = totp.now()
-        fa2 = WebDriverWait(driver, 60).until(EC.visibility_of_element_located((By.XPATH, "//span[1]//input[1]")))
+        fa2 = WebDriverWait(driver, 60).until(EC.visibility_of_element_located((By.XPATH, CODE2FA)))
         fa2.clear()
         fa2.send_keys(current_code)
         logging.info("Код двухфакторной аутентификации введён.")
         
         return driver
     except Exception as e:
-        logging.error(f"Ошибка в функции firstlogin: {e}")
-        return driver
-
-def relogin(driver):
-    """Функция для релогина, если токен истёк."""
-    logging.info("Запуск функции relogin.")
-    totp = pyotp.TOTP(KEY)
-    driver.get("https://dnevnik.egov66.ru")
-    try:
-        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'Войти через Госуслуги')]"))).click()
-        logging.info("Кнопка 'Войти через Госуслуги' нажата.")
-        
-        # Ввод пароля
-        password = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.ID, "password")))
-        password.clear()
-        password.send_keys(PASSWD)
-        logging.info("Пароль введён.")
-        
-        # Нажатие кнопки "Войти"
-        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[@class='plain-button plain-button_wide']"))).click()
-        logging.info("Кнопка 'Войти' нажата.")
-        
-        # Ввод кода двухфакторной аутентификации
-        current_code = totp.now()
-        fa2 = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//span[1]//input[1]")))
-        fa2.clear()
-        fa2.send_keys(current_code)
-        logging.info("Код двухфакторной аутентификации введён.")
-        
-        return driver
-    except Exception as e:
-        logging.error(f"Ошибка в функции relogin: {e}")
+        logging.error(f"Ошибка в функции login: {e}")
         return driver
 
 def main():
     logging.info("Запуск программы.")
-    driver = firstlogin()
+    driver = login()  # Первичный вход
     
     while True:
         try:
             # Запускаем парсер
             logging.info("Запуск парсера.")
-            parser.changes(driver, UUID)
+            parser.check_changes(driver, UUID)
         except Exception as e:
             logging.error(f"Ошибка в main: {e}. Выполняем релогин...")
-            driver = relogin(driver)
+            driver = login(driver)  # Повторный вход
             continue
 
 # Запуск программы
