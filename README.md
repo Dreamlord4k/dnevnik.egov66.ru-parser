@@ -25,8 +25,8 @@ dnevnik-parser-2.0/
 ├── [webdriver.py](webdriver.py)    # Инициализация базы данных (клиент)  
 ├── [requirements.txt](requirements.txt) # Зависимости проекта  
 ├── [database.env](database.env)              # Локальная база данных  (клиент)   
-├── [start.cmd](start.cmd) #файл для запуска парсера   
-├── parser.log #логи парсера. Сюда будут выводиться все ошибки  
+├── [start.cmd](start.cmd) # Файл для запуска парсера   
+├── parser.log # Логи парсера. Сюда будут выводиться все ошибки  
 └── [README.md](README.md)                 # Документация проекта  
  
   
