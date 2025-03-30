@@ -25,7 +25,7 @@ dnevnik-parser-2.0/
 ├── [api_server.py](api_server.py)   # API-сервер для обработки данных (сервер)  
 ├── [webdriver.py](webdriver.py)    # Инициализация базы данных (клиент)  
 ├── [requirements.txt](requirements.txt) # Зависимости проекта  
-├── database.env              # Локальная база данных  (клиент)  
+├── [database.env](database.env)              # Локальная база данных  (клиент)  
 └── README.md                 # Документация проекта  
  
 
