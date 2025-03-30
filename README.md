@@ -10,10 +10,9 @@
 
  
 
-## Схема работы:  
+## Общая схема работы:  
 
-![изображение](https://github.com/user-attachments/assets/36875bcd-4f7a-461b-b99f-d99c5d3ac089)
- 
+![изображение](https://github.com/user-attachments/assets/8001f5da-d9ed-4d22-a462-17bfc39c6a25)
 
 
  
@@ -26,7 +25,7 @@ dnevnik-parser-2.0/
 ├── [webdriver.py](webdriver.py)    # Инициализация базы данных (клиент)  
 ├── [requirements.txt](requirements.txt) # Зависимости проекта  
 ├── [database.env](database.env)              # Локальная база данных  (клиент)  
-└── README.md                 # Документация проекта  
+└── [README.md](README.md)                 # Документация проекта  
  
 
 
