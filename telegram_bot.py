@@ -52,8 +52,11 @@ async def check_for_updates():
                 grades = await cursor.fetchall()
                 print(f"Текущие оценки из базы: {grades}")  # Отладочное сообщение
                 for uuid, subject, grade in grades:
-                    current_grades = list(map(int, grade.split()))  # Преобразуем строку в список оценок
-                    previous_grades = last_grades.get((uuid, subject), [])
+                    try:
+                        current_grades = list(map(int, grade.split()))  # Преобразуем строку в список оценок
+                        previous_grades = last_grades.get((uuid, subject), [])
+                    except:
+                        print('чето с форматом не то')
 
                     # Определяем новые оценки
                     new_grades = [g for g in current_grades if g not in previous_grades]
