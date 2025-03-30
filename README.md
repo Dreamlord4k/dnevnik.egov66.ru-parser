@@ -57,7 +57,7 @@ pip --version
 python -m ensurepip --upgrade
 ```
 # 2. **Установка парсера**
-Для установки парсера просто скачайте последний доступный архив из [reliases]: https://github.com/Dreamlord4k/dnevnik.egov66.ru-parser/releases.
+Для установки парсера просто скачайте последний доступный архив из [reliases](https://github.com/Dreamlord4k/dnevnik.egov66.ru-parser/releases).
 После чего распакуйте архив в любую удобную вам папку.
 
   
