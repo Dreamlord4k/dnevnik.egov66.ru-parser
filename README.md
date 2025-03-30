@@ -46,7 +46,9 @@ dnevnik-parser-2.0/
   
 После чего скопировать ключ в базу данных [database.env](database.env) в строку KEY:  
 ![NVIDIA_Overlay_ZJ8UXgnUIc](https://github.com/user-attachments/assets/6510eab9-a354-4938-a837-567314b45986)  
-
+  
+Затем, для получения уникального uuid нужно будет написать боту [@DnevnikEgov66_bot](https://t.me/DnevnikEgov66_bot).  
+В нем же вы сможете смотреть свои оценки и пропуски, а так же получать уведомления о каких-либо изменениях.  
 
 # 1. **Установка Python и pip**
 Убедитесь, что у вас установлен Python версии 3.10 или выше.  
