@@ -11,13 +11,19 @@ import requests
 logging.basicConfig(
     filename="parser.log",  # Имя файла для логов
     encoding='utf-8',  # Кодировка файла логов
-    level=logging.INFO,  # Уровень логирования (INFO, ERROR, DEBUG и т.д.)
+    level=logging.INFO,  # Уровень логирования (DEBUG, ERROR, DEBUG и т.д.)
     format="%(asctime)s - %(levelname)s - %(message)s"  # Формат логов
 )
+# Дублируем логи в консоль
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+logging.getLogger().addHandler(console_handler)
 print('работаем, наверное....')
 # Загрузка UUID из файла database.env
 load_dotenv("database.env")
 UUID = os.getenv("UUID")  # Убедитесь, что UUID добавлен в .env файл
+URL = os.getenv("URL")  # URL четверти/полугодия, которое вы хотите парсить
 
 # URL API сервера
 SERVER_URL = "https://dream.zeo.lol/update_grades"  # Замените <SERVER_IP> на IP-адрес сервера(не трогать, если вы просто клиент)
@@ -45,7 +51,7 @@ def parse(driver):
         if not driver.current_url.startswith('https://dnevnik.egov66.ru/'):
             time.sleep(2)
         
-        target_url = 'https://dnevnik.egov66.ru/diary/grades-page/?grades-page-filter=%7B%22values%22%3A%7B%22period%22%3A%2201955f9b-3ed2-7300-badd-40c03a3c97e3%22%2C%22gradeId%22%3A%22019077a2-49f4-76e5-b4d4-ff43a843abbf%22%2C%22discipline%22%3A%2200000000-0000-0000-0000-000000000000%22%2C%22year%22%3A%222024%22%2C%22groupId%22%3Anull%7D%7D'
+        target_url = URL
         driver.get(target_url)
         WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "_discipline_875gj_34")))
         grades_data = {}
@@ -93,6 +99,7 @@ def check_changes(driver, uuid):
 
 
             # Задержка на 10 секунд
-            time.sleep(10)
+            print('изменения в оценках не обнаружены')
+            time.sleep(30)
         except Exception as e:
             logging.error(f"Ошибка в функции changes: {e}")
