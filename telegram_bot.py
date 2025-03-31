@@ -7,7 +7,9 @@ import os
 import aiosqlite
 import uuid
 from pyrogram.errors import PeerIdInvalid
-
+import pytz
+import datetime
+TIMEZONE = pytz.timezone('Asia/Yekaterinburg')
 # Загрузка данных из файла .env
 load_dotenv("databasetg.env")
 token = os.getenv("TOKEN")
@@ -18,6 +20,68 @@ app = Client("DnevnikEgov66_bot",
              api_hash=api_hash,
              api_id=api_id,
              bot_token=token)
+
+
+SCHEDULE = {
+   'MONDAY': [
+       {'start': '08:00', 'end': '08:40', 'subject': 'Разговоры о важном', 'break_after': 10},
+       {'start': '08:50', 'end': '09:25', 'break_after': 20},
+       {'start': '09:45', 'end': '10:20', 'break_after': 20},
+       {'start': '10:40', 'end': '11:15', 'break_after': 20},
+       {'start': '11:35', 'end': '12:10', 'break_after': 10},
+       {'start': '12:20', 'end': '12:55', 'break_after': 10},
+       {'start': '13:05', 'end': '13:40', 'break_after': 20},
+       {'start': '14:00', 'end': '14:35', 'break_after': 0}, # no break after last lesson
+   ],
+   'TUE_FRI': [
+       {'start': '08:00', 'end': '08:40', 'break_after': 10},
+       {'start': '08:50', 'end': '09:30', 'break_after': 20},
+       {'start': '09:50', 'end': '10:30', 'break_after': 20},
+       {'start': '10:50', 'end': '11:30', 'break_after': 20},
+       {'start': '11:50', 'end': '12:30', 'break_after': 10},
+       {'start': '12:40', 'end': '13:20', 'break_after': 10},
+       {'start': '13:30', 'end': '14:10', 'break_after': 20},
+       {'start': '14:30', 'end': '15:10', 'break_after': 0}, # no break after last lesson
+   ]
+}
+
+
+def get_lesson_time():
+    """Calculates the time remaining until the end or beginning of the current/next lesson."""
+    now = datetime.datetime.now(TIMEZONE)
+    current_time = now.strftime("%H:%M")
+    day = now.strftime("%A").upper()
+
+    if day in ['TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY']:
+        schedule = SCHEDULE['TUE_FRI']
+    elif day == 'MONDAY':
+        schedule = SCHEDULE['MONDAY']
+    else:
+        return "Сегодня нет уроков."
+
+    for i, lesson in enumerate(schedule):
+        start_time = lesson['start']
+        end_time = lesson['end']
+        break_after = lesson.get('break_after', 0)
+
+        if current_time < start_time:
+            # Time until the beginning of the lesson
+            lesson_start_time = datetime.datetime.strptime(start_time, "%H:%M").time()
+            lesson_start_datetime = datetime.datetime.combine(now.date(), lesson_start_time, tzinfo=TIMEZONE)
+            time_remaining = lesson_start_datetime - now
+            minutes = time_remaining.total_seconds() / 60
+            return f"До начала урока {i+1}: {int(minutes)} минут"
+
+        elif current_time >= start_time and current_time <= end_time:
+            # Time until the end of the lesson
+            lesson_end_time = datetime.datetime.strptime(end_time, "%H:%M").time()
+            lesson_end_datetime = datetime.datetime.combine(now.date(), lesson_end_time, tzinfo=TIMEZONE)
+            time_remaining = lesson_end_datetime - now
+            minutes = time_remaining.total_seconds() / 60
+            return f"До конца урока {i+1}: {int(minutes)} минут"
+
+    # If the current time is after all lessons
+    return "Уроки закончились."
 
 
 async def register_user(telegram_id):
@@ -175,7 +239,10 @@ async def handle_callback_query(client, callback_query):
                 response = "На вас нет данных о пропусках в базе данных."
 
         else:
-            response = "Неизвестная команда."
+            if data == "lesson_time":
+                response = get_lesson_time()
+            else:
+                response = "Неизвестная команда."
 
         # Подтверждаем обработку нажатия кнопки
         await callback_query.answer()
@@ -243,8 +310,10 @@ async def handle_private_message(client, message):
             # Если предмет не найден, показываем кнопки
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("Оценки", callback_data="grades")],
-                [InlineKeyboardButton("Пропуски", callback_data="absences")]
+                [InlineKeyboardButton("Пропуски", callback_data="absences")],
+                [InlineKeyboardButton("Время до урока", callback_data="lesson_time")]
             ])
+
             response = "Выберите, что вы хотите посмотреть:"
             await client.send_message(
                 chat_id=message.chat.id,
