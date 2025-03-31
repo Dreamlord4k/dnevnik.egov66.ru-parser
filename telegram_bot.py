@@ -52,12 +52,24 @@ async def check_for_updates():
                 grades = await cursor.fetchall()
                 print(f"Текущие оценки из базы: {grades}")  # Отладочное сообщение
                 for uuid, subject, grade in grades:
+                    # --- Validation Start ---
+                    if not isinstance(uuid, str) or not uuid:
+                        print(f"Ошибка валидации: Неверный формат UUID '{uuid}' для предмета '{subject}'. Пропускаем строку.")
+                        continue
+                    if not isinstance(subject, str) or not subject:
+                        print(f"Ошибка валидации: Неверный формат предмета '{subject}' для UUID '{uuid}'. Пропускаем строку.")
+                        continue
+                    if not isinstance(grade, str):
+                        print(f"Ошибка валидации: Оценка должна быть строкой, получено '{type(grade)}' для UUID '{uuid}', предмет '{subject}'. Пропускаем строку.")
+                        continue
+
+                    current_grades = []
                     try:
                         current_grades = list(map(int, grade.split()))  # Преобразуем строку в список оценок
-                        previous_grades = last_grades.get((uuid, subject), [])
-                    except:
-                        print('чето с форматом не то')
-
+                    except ValueError:
+                        print(f"Ошибка валидации: Неверный формат оценки '{grade}' для UUID '{uuid}', предмет '{subject}'. Содержит нечисловые значения. Пропускаем строку.")
+                        continue
+                    previous_grades = last_grades.get((uuid, subject), [])
                     # Определяем новые оценки
                     new_grades = [g for g in current_grades if g not in previous_grades]
                     if new_grades:
@@ -177,7 +189,7 @@ async def handle_callback_query(client, callback_query):
 async def handle_private_message(client, message):
     """Обработчик входящих сообщений."""
     telegram_id = message.from_user.id
-    text = message.text.strip().lower().capitalize()
+    text = message.text.strip().lower()
     print(f"Получено сообщение от {telegram_id}: {text}")
 
     # Регистрируем пользователя и получаем UUID и флаг is_new
@@ -194,17 +206,39 @@ async def handle_private_message(client, message):
 
     # Подключение к базе данных
     async with aiosqlite.connect("big_data.db") as conn:
-        async with conn.execute("SELECT grade FROM grades WHERE uuid = ? AND subject = ?", (user_uuid, text)) as cursor:
-            grades = await cursor.fetchone()
+        async with conn.execute("SELECT subject, grade FROM grades WHERE uuid = ?", (user_uuid,)) as cursor:
+            all_user_grades = await cursor.fetchall()
 
-        if grades:
+        found_grades_str = None
+        found_subject = None
+        # Выполняем сравнение без учета регистра в Python
+        for db_subject, db_grade in all_user_grades:
+            # Сравниваем строчные и удаленные символы из базы данных с введенным строчным текстом
+            if db_subject and isinstance(db_subject, str) and db_subject.strip().lower() == text:
+                found_grades_str = db_grade
+                found_subject = db_subject # сохраним оригинальное название предмета
+                break # выход из цикла, если нашли совпадение
+
+        if found_grades_str is not None:
             # Если предмет найден, отправляем список оценок
-            grades_list = list(map(int, grades[0].split()))
-            response = f"**Ваши оценки по предмету {text.capitalize()}:** __{' '.join(map(str, grades_list))}__\n"
-            try:
-                response += f"**Средний балл:** __{round(sum(grades_list) / len(grades_list), 2)}__"
-            except:
-                response += 'нет данных для вычисления среднего балла'
+            grades_list = []
+            response = f"**Ваши оценки по предмету {found_subject}:** " # используем оригинальное название предмета
+            if found_grades_str and isinstance(found_grades_str, str) and found_grades_str.strip():
+                try:
+                    grades_list = list(map(int, found_grades_str.split()))
+                    response += f"__{' '.join(map(str, grades_list))}__\n"
+                    # вычисляем средний балл
+                    if grades_list:
+                        avg_grade = round(sum(grades_list) / len(grades_list), 2)
+                        response += f"**Средний балл:** __{avg_grade}__"
+                    else:
+                         response += '\nнет данных для вычисления среднего балла'
+                except ValueError:
+                     response += f"__(ошибка формата: {found_grades_str})__\n" 
+                     response += 'нет данных для вычисления среднего балла'
+            else:
+                 response += f"__(нет оценок)__\n"
+                 response += 'нет данных для вычисления среднего балла'
         else:
             # Если предмет не найден, показываем кнопки
             keyboard = InlineKeyboardMarkup([
