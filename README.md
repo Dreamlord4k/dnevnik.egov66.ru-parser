@@ -108,7 +108,7 @@ python -m ensurepip --upgrade
     ```
 
 ## Как пользоваться?  
-Сам телеграмм бот: [@DnevnikEgov66_bot](https://t.me/DnevnikEgov66_bot)  
+Сам telegram бот: [@DnevnikEgov66_bot](https://t.me/DnevnikEgov66_bot)  
   
 При написании боту любого сообщения, кроме названия предмета, выводятся три кнопки:  
    Оценки: выводит все оценки по каждому предмету.    
