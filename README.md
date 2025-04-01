@@ -119,5 +119,6 @@ python -m ensurepip --upgrade
 
 Также наш сайт: [syntax.zeo.lol](https://syntax.zeo.lol)  
 И его исходный код: [parser-website](https://github.com/Dreamlord4k/parser-website)  
-
+Связь с разработчиком: [telegram](https://t.me/MrCrstl)  
+  
 # Syntax Parser. Все права защищены.  
