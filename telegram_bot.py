@@ -48,9 +48,9 @@ SCHEDULE = {
 
 def get_lesson_time():
     """Calculates the time remaining until the end or beginning of the current/next lesson."""
-    now = datetime.datetime.now(TIMEZONE)
-    current_time = now.strftime("%H:%M")
-    day = now.strftime("%A").upper()
+    now_dt = datetime.datetime.now(TIMEZONE)
+    now_time = now_dt.time() # Use time object for comparison
+    day = now_dt.strftime("%A").upper()
 
     if day in ['TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY']:
         schedule = SCHEDULE['TUE_FRI']
@@ -60,27 +60,37 @@ def get_lesson_time():
         return "Сегодня нет уроков."
 
     for i, lesson in enumerate(schedule):
-        start_time = lesson['start']
-        end_time = lesson['end']
-        break_after = lesson.get('break_after', 0)
+        # Parse lesson times into time objects
+        try:
+            lesson_start_time = datetime.datetime.strptime(lesson['start'], "%H:%M").time()
+            lesson_end_time = datetime.datetime.strptime(lesson['end'], "%H:%M").time()
+        except ValueError:
+            # Handle potential errors in SCHEDULE format
+            print(f"Error parsing time for lesson {i+1}: {lesson}")
+            continue # Skip this lesson if times are invalid
 
-        if current_time < start_time:
-            # Time until the beginning of the lesson
-            lesson_start_time = datetime.datetime.strptime(start_time, "%H:%M").time()
-            lesson_start_datetime = datetime.datetime.combine(now.date(), lesson_start_time, tzinfo=TIMEZONE)
-            time_remaining = lesson_start_datetime - now
+        # Combine with current date and timezone for accurate subtraction
+        lesson_start_datetime = datetime.datetime.combine(now_dt.date(), lesson_start_time, tzinfo=TIMEZONE)
+        lesson_end_datetime = datetime.datetime.combine(now_dt.date(), lesson_end_time, tzinfo=TIMEZONE)
+
+        if now_time < lesson_start_time:
+            # Before this lesson starts (could be break or before first lesson)
+            time_remaining = lesson_start_datetime - now_dt
             minutes = time_remaining.total_seconds() / 60
+            # Ensure we don't show negative minutes if something went wrong
+            if minutes < 0: minutes = 0
             return f"До начала урока {i+1}: {int(minutes)} минут"
 
-        elif current_time >= start_time and current_time <= end_time:
-            # Time until the end of the lesson
-            lesson_end_time = datetime.datetime.strptime(end_time, "%H:%M").time()
-            lesson_end_datetime = datetime.datetime.combine(now.date(), lesson_end_time, tzinfo=TIMEZONE)
-            time_remaining = lesson_end_datetime - now
+        elif now_time >= lesson_start_time and now_time < lesson_end_time: # Use < end_time
+            # During this lesson
+            time_remaining = lesson_end_datetime - now_dt
             minutes = time_remaining.total_seconds() / 60
+            if minutes < 0: minutes = 0
             return f"До конца урока {i+1}: {int(minutes)} минут"
 
-    # If the current time is after all lessons
+        # If now_time >= lesson_end_time, continue to the next lesson check
+
+    # If the loop completes, it's after the last lesson
     return "Уроки закончились."
 
 
