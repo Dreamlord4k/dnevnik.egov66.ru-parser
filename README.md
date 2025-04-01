@@ -118,7 +118,7 @@ python -m ensurepip --upgrade
 при написании боту названия предмета, он выдаст вам только ваши оценки и средний балл по конкретному предмету.  
 
 # Информация  
-Также мой сайт: [syntax.zeo.lol](https://syntax.zeo.lol)  
+Также сайт парсера: [syntax.zeo.lol](https://syntax.zeo.lol)  
 И его исходный код: [parser-website](https://github.com/Dreamlord4k/parser-website)  
 Связь с разработчиком: [telegram](https://t.me/MrCrstl)  
   
