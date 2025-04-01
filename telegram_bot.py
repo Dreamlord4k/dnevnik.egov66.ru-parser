@@ -143,11 +143,28 @@ async def check_for_updates():
                     except ValueError:
                         print(f"Ошибка валидации: Неверный формат оценки '{grade}' для UUID '{uuid}', предмет '{subject}'. Содержит нечисловые значения. Пропускаем строку.")
                         continue
-                    previous_grades = last_grades.get((uuid, subject), [])
-                    # Определяем новые оценки
-                    new_grades = [g for g in current_grades if g not in previous_grades]
-                    if new_grades:
-                        print(f"Новые оценки по предмету {subject}: {new_grades}")  # Отладочное сообщение
+                    previous_grades_list = last_grades.get((uuid, subject), [])
+                    # Сравниваем наборы оценок для обнаружения любых изменений
+                    current_grades_set = set(current_grades)
+                    previous_grades_set = set(previous_grades_list)
+
+                    if current_grades_set != previous_grades_set:
+                        added_grades = list(current_grades_set - previous_grades_set)
+                        removed_grades = list(previous_grades_set - current_grades_set)
+
+                        message_parts = [f"Изменения по предмету **{subject}**:"]
+                        if added_grades:
+                            message_parts.append(f"Добавлены оценки: __{' '.join(map(str, sorted(added_grades)))}__")
+                        if removed_grades:
+                            message_parts.append(f"Удалены оценки: __{' '.join(map(str, sorted(removed_grades)))}__")
+                        # Fallback if sets differ but no specific add/remove detected (e.g., order change only, though unlikely with sets)
+                        if not added_grades and not removed_grades:
+                             grades_text = ' '.join(map(str, current_grades)) if current_grades else '(оценок нет)'
+                             message_parts.append(f"Текущие оценки: __{grades_text}__")
+
+                        notification_text = "\n".join(message_parts)
+                        print(f"Отправка уведомления: {notification_text}") # Отладочное сообщение
+
                         try:
                             async with conn.execute("SELECT telegram_id FROM users WHERE uuid = ?", (uuid,)) as user_cursor:
                                 user_result = await user_cursor.fetchone()
@@ -156,37 +173,43 @@ async def check_for_updates():
                                     asyncio.run_coroutine_threadsafe(
                                         app.send_message(
                                             chat_id=telegram_id,
-                                            text=f"Новые оценки по предмету **{subject}**: __{' '.join(map(str, new_grades))}__"
+                                            text=notification_text
                                         ),
                                         asyncio.get_event_loop()
                                     )
-                                    last_grades[(uuid, subject)] = current_grades  # Обновляем кэш
                         except PeerIdInvalid:
                             print(f"Ошибка: пользователь с UUID {uuid} не взаимодействовал с ботом.")
+
+                    # Обновляем кэш ВСЕГДА после обработки записи, чтобы отразить текущее состояние из БД
+                    last_grades[(uuid, subject)] = current_grades
 
             # Проверяем изменения в таблице absences
             async with conn.execute("SELECT uuid, subject, absence_count FROM absences") as cursor:
                 absences = await cursor.fetchall()
                 print(f"Текущие пропуски из базы: {absences}")  # Отладочное сообщение
                 for uuid, subject, absence_count in absences:
-                    if (uuid, subject) not in last_absences or last_absences[(uuid, subject)] != absence_count:
-                        # Если данные изменились, отправляем уведомление
-                        print(f"Изменение в пропусках: {uuid}, {subject}, {absence_count}")  # Отладочное сообщение
-                        try:
-                            async with conn.execute("SELECT telegram_id FROM users WHERE uuid = ?", (uuid,)) as user_cursor:
-                                user_result = await user_cursor.fetchone()
-                                if user_result:
-                                    telegram_id = user_result[0]
-                                    asyncio.run_coroutine_threadsafe(
-                                        app.send_message(
-                                            chat_id=telegram_id,
-                                            text=f"Обновлены пропуски по предмету **{subject}**: __{absence_count}__"
-                                        ),
-                                        asyncio.get_event_loop()
-                                    )
-                                    last_absences[(uuid, subject)] = absence_count
-                        except PeerIdInvalid:
-                            print(f"Ошибка: пользователь с UUID {uuid} не взаимодействовал с ботом.")
+                    previous_absence_count = last_absences.get((uuid, subject), None) # Используем None как маркер отсутствия записи
+                    # Проверяем, изменилось ли количество пропусков
+                    if previous_absence_count is None or previous_absence_count != absence_count:
+                        # Отправляем уведомление только если это не первая проверка для этого предмета ИЛИ если значение изменилось
+                        if previous_absence_count is not None:
+                             print(f"Изменение в пропусках: {uuid}, {subject}, было {previous_absence_count}, стало {absence_count}") # Отладочное сообщение
+                             try:
+                                 async with conn.execute("SELECT telegram_id FROM users WHERE uuid = ?", (uuid,)) as user_cursor:
+                                     user_result = await user_cursor.fetchone()
+                                     if user_result:
+                                         telegram_id = user_result[0]
+                                         asyncio.run_coroutine_threadsafe(
+                                             app.send_message(
+                                                 chat_id=telegram_id,
+                                                 text=f"Обновлены пропуски по предмету **{subject}**: __{absence_count}__"
+                                             ),
+                                             asyncio.get_event_loop()
+                                         )
+                             except PeerIdInvalid:
+                                 print(f"Ошибка: пользователь с UUID {uuid} не взаимодействовал с ботом.")
+                    # Обновляем кэш ВСЕГДА после обработки записи
+                    last_absences[(uuid, subject)] = absence_count
 
             # Задержка перед следующей проверкой
             print("Задержка на 10 секунд")  # Отладочное сообщение
