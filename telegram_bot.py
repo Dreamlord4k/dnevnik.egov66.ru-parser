@@ -22,36 +22,38 @@ app = Client("DnevnikEgov66_bot",
              bot_token=token)
 
 
-SCHEDULE = {
-   'MONDAY': [
-       {'start': '08:00', 'end': '08:40', 'subject': 'Разговоры о важном', 'break_after': 10},
-       {'start': '08:50', 'end': '09:25', 'break_after': 20},
-       {'start': '09:45', 'end': '10:20', 'break_after': 20},
-       {'start': '10:40', 'end': '11:15', 'break_after': 20},
-       {'start': '11:35', 'end': '12:10', 'break_after': 10},
-       {'start': '12:20', 'end': '12:55', 'break_after': 10},
-       {'start': '13:05', 'end': '13:40', 'break_after': 20},
-       {'start': '14:00', 'end': '14:35', 'break_after': 0}, # no break after last lesson
-   ],
-   'TUE_FRI': [
-       {'start': '08:00', 'end': '08:40', 'break_after': 10},
-       {'start': '08:50', 'end': '09:30', 'break_after': 20},
-       {'start': '09:50', 'end': '10:30', 'break_after': 20},
-       {'start': '10:50', 'end': '11:30', 'break_after': 20},
-       {'start': '11:50', 'end': '12:30', 'break_after': 10},
-       {'start': '12:40', 'end': '13:20', 'break_after': 10},
-       {'start': '13:30', 'end': '14:10', 'break_after': 20},
-       {'start': '14:30', 'end': '15:10', 'break_after': 0}, # no break after last lesson
-   ]
-}
+TIMEZONE = pytz.timezone('Asia/Yekaterinburg')
 
+SCHEDULE = {
+    'MONDAY': [
+        {'start': '08:00', 'end': '08:40', 'subject': 'Разговоры о важном'},
+        {'start': '08:50', 'end': '09:25'},
+        {'start': '09:45', 'end': '10:20'},
+        {'start': '10:40', 'end': '11:15'},
+        {'start': '11:35', 'end': '12:10'},
+        {'start': '12:20', 'end': '12:55'},
+        {'start': '13:05', 'end': '13:40'},
+        {'start': '14:00', 'end': '14:35'},
+    ],
+    'TUE_FRI': [
+        {'start': '08:00', 'end': '08:40'},
+        {'start': '08:50', 'end': '09:30'},
+        {'start': '09:50', 'end': '10:30'},
+        {'start': '10:50', 'end': '11:30'},
+        {'start': '11:50', 'end': '12:30'},
+        {'start': '12:40', 'end': '13:20'},
+        {'start': '13:30', 'end': '14:10'},
+        {'start': '14:30', 'end': '15:10'},
+    ]
+}
 
 def get_lesson_time():
     """Calculates the time remaining until the end or beginning of the current/next lesson."""
     now_dt = datetime.datetime.now(TIMEZONE)
-    now_time = now_dt.time() # Use time object for comparison
+    now_time = now_dt.time()
     day = now_dt.strftime("%A").upper()
 
+    # Определяем расписание в зависимости от дня
     if day in ['TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY']:
         schedule = SCHEDULE['TUE_FRI']
     elif day == 'MONDAY':
@@ -60,38 +62,41 @@ def get_lesson_time():
         return "Сегодня нет уроков."
 
     for i, lesson in enumerate(schedule):
-        # Parse lesson times into time objects
-        try:
-            lesson_start_time = datetime.datetime.strptime(lesson['start'], "%H:%M").time()
-            lesson_end_time = datetime.datetime.strptime(lesson['end'], "%H:%M").time()
-        except ValueError:
-            # Handle potential errors in SCHEDULE format
-            print(f"Error parsing time for lesson {i+1}: {lesson}")
-            continue # Skip this lesson if times are invalid
+        # Преобразуем время начала и конца урока в объекты time
+        start_time = datetime.datetime.strptime(lesson['start'], "%H:%M").time()
+        end_time = datetime.datetime.strptime(lesson['end'], "%H:%M").time()
 
-        # Combine with current date and timezone for accurate subtraction
-        lesson_start_datetime = datetime.datetime.combine(now_dt.date(), lesson_start_time, tzinfo=TIMEZONE)
-        lesson_end_datetime = datetime.datetime.combine(now_dt.date(), lesson_end_time, tzinfo=TIMEZONE)
+        # Создаем полные datetime объекты для текущего дня с правильной локализацией
+        start_dt = TIMEZONE.localize(datetime.datetime.combine(now_dt.date(), start_time))
+        end_dt = TIMEZONE.localize(datetime.datetime.combine(now_dt.date(), end_time))
 
-        if now_time < lesson_start_time:
-            # Before this lesson starts (could be break or before first lesson)
-            time_remaining = lesson_start_datetime - now_dt
-            minutes = time_remaining.total_seconds() / 60
-            # Ensure we don't show negative minutes if something went wrong
-            if minutes < 0: minutes = 0
-            return f"До начала урока {i+1}: {int(minutes)} минут"
+        # Если текущее время находится внутри урока
+        if start_time <= now_time < end_time:
+            print(f"end_dt: {end_dt}")
+            print(f"now_dt: {now_dt}")
+            time_left = end_dt - now_dt
+            if time_left < datetime.timedelta(0):
+                print(f"Ошибка расчета времени: Отрицательное время для урока {i+1}. end_dt={end_dt}, now_dt={now_dt}")
+                return "Ошибка в расчете времени (отрицательный результат)."
 
-        elif now_time >= lesson_start_time and now_time < lesson_end_time: # Use < end_time
-            # During this lesson
-            time_remaining = lesson_end_datetime - now_dt
-            minutes = time_remaining.total_seconds() / 60
-            if minutes < 0: minutes = 0
-            return f"До конца урока {i+1}: {int(minutes)} минут"
+            minutes_left = int(time_left.total_seconds() / 60)
+            subject = lesson.get('subject', f'Урок {i + 1}')
+            return f"До конца урока ({subject}): {minutes_left} минут"
 
-        # If now_time >= lesson_end_time, continue to the next lesson check
+        # Если текущее время до начала первого урока
+        elif now_time < start_time and i == 0:
+            time_until = start_dt - now_dt
+            minutes_until = int(time_until.total_seconds() / 60)
+            subject = lesson.get('subject', f'Урок {i + 1}')
+            return f"До начала урока ({subject}): {minutes_until} минут"
 
-    # If the loop completes, it's after the last lesson
-    return "Уроки закончились."
+    # Если время после последнего урока
+    last_lesson_end = datetime.datetime.strptime(schedule[-1]['end'], "%H:%M").time()
+    if now_time >= last_lesson_end:
+        return "Уроки на сегодня закончились."
+
+    return "Ошибка в расчете времени."
+
 
 
 async def register_user(telegram_id):
