@@ -23,9 +23,9 @@ dnevnik.egov66.ru-parser/
 ├── [webdriver.py](webdriver.py)    # Инициализация базы данных (клиент)  
 ├── [requirements.txt](requirements.txt) # Зависимости проекта  
 ├── [database.env](database.env)              # Локальная база данных  (клиент)   
-├── [start.cmd](start.cmd) # Файл для запуска парсера   (клиент)
+├── [start.cmd](start.cmd) # Файл для запуска парсера   (клиент)  
 ├── [docker-compose.yml](docker-compose.yml) #инструкции для докера (для тех, кто использует docker)  
-├── parser.log # Логи парсера. Сюда будут выводиться все ошибки  (клиент)
+├── parser.log # Логи парсера. Сюда будут выводиться все ошибки  (клиент)  
 └── [README.md](README.md)                 # Документация проекта  
  
   
