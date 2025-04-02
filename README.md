@@ -107,7 +107,7 @@ python -m ensurepip --upgrade
     pip install -r requirements.txt  
     ```
 
-## Как пользоваться?  
+# Как пользоваться?   
 Сам telegram бот: [@DnevnikEgov66_bot](https://t.me/DnevnikEgov66_bot)  
   
 При написании боту любого сообщения, кроме названия предмета, выводятся три кнопки:  
@@ -122,4 +122,4 @@ python -m ensurepip --upgrade
 И его исходный код: [parser-website](https://github.com/Dreamlord4k/parser-website)  
 Связь с разработчиком: [telegram](https://t.me/MrCrstl)  
   
-# Syntax Parser. Все права защищены.  
+# Syntax Parser. Все права защищены.(я лично защитил)  
