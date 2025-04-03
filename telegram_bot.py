@@ -69,11 +69,8 @@ def get_lesson_time():
         # Создаем полные datetime объекты для текущего дня с правильной локализацией
         start_dt = TIMEZONE.localize(datetime.datetime.combine(now_dt.date(), start_time))
         end_dt = TIMEZONE.localize(datetime.datetime.combine(now_dt.date(), end_time))
-
         # Если текущее время находится внутри урока
         if start_time <= now_time < end_time:
-            print(f"end_dt: {end_dt}")
-            print(f"now_dt: {now_dt}")
             time_left = end_dt - now_dt
             if time_left < datetime.timedelta(0):
                 print(f"Ошибка расчета времени: Отрицательное время для урока {i+1}. end_dt={end_dt}, now_dt={now_dt}")
@@ -84,7 +81,7 @@ def get_lesson_time():
             return f"До конца урока ({subject}): {minutes_left} минут"
 
         # Если текущее время до начала первого урока
-        elif now_time < start_time and i == 0:
+        elif now_time < start_time:
             time_until = start_dt - now_dt
             minutes_until = int(time_until.total_seconds() / 60)
             subject = lesson.get('subject', f'Урок {i + 1}')
@@ -129,7 +126,7 @@ async def check_for_updates():
             # Проверяем изменения в таблице grades
             async with conn.execute("SELECT uuid, subject, grade FROM grades") as cursor:
                 grades = await cursor.fetchall()
-                print(f"Текущие оценки из базы: {grades}")  # Отладочное сообщение
+                # print(f"Текущие оценки из базы: {grades}")  # Отладочное сообщение
                 for uuid, subject, grade in grades:
                     # --- Validation Start ---
                     if not isinstance(uuid, str) or not uuid:
@@ -191,7 +188,7 @@ async def check_for_updates():
             # Проверяем изменения в таблице absences
             async with conn.execute("SELECT uuid, subject, absence_count FROM absences") as cursor:
                 absences = await cursor.fetchall()
-                print(f"Текущие пропуски из базы: {absences}")  # Отладочное сообщение
+                # print(f"Текущие пропуски из базы: {absences}")  # Отладочное сообщение
                 for uuid, subject, absence_count in absences:
                     previous_absence_count = last_absences.get((uuid, subject), None) # Используем None как маркер отсутствия записи
                     # Проверяем, изменилось ли количество пропусков
@@ -304,8 +301,9 @@ async def handle_private_message(client, message):
         # Отправляем UUID только новым пользователям
         await client.send_message(
             chat_id=message.chat.id,
-            text=f"Добро пожаловать! Ваш уникальный идентификатор (UUID): {user_uuid}\n"
-                 f"Сохраните его в файл database.env для дальнейшего использования."
+            text=f"Добро пожаловать! Ваш уникальный идентификатор (UUID): ||{user_uuid}||\n"
+                 f"Сохраните его в файл database.env для дальнейшего использования.\n"
+                 f"Без настройки и запуска самого парсера вы сможете только узнавать время до конца/начала урока)"
         )
         print(f"Пользователь зарегистрирован: Telegram ID = {telegram_id}, UUID = {user_uuid}")
 
