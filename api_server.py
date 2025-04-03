@@ -48,5 +48,38 @@ def update_grades():
 
     return jsonify({"message": "Data updated successfully"}), 200
 
+@app.route('/get_grades', methods=['GET'])
+def get_grades():
+    uuid = request.args.get('uuid')
+    if not uuid:
+        return jsonify({"error": "UUID parameter is required"}), 400
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # Получение оценок
+    cursor.execute("SELECT subject, grade FROM grades WHERE uuid = ?", (uuid,))
+    grades_data = cursor.fetchall()
+    grades_result = {}
+    for subject, grade_str in grades_data:
+        # grades_result[subject] = [int(g) for g in grade_str.split()]
+        grades_result[subject] = grade_str
+
+    # Получение пропусков
+    cursor.execute("SELECT subject, absence_count FROM absences WHERE uuid = ?", (uuid,))
+    absences_data = cursor.fetchall()
+    absences_result = dict(absences_data)
+
+    conn.close()
+
+    if not grades_result and not absences_result:
+        return jsonify({"message": "No data found for this UUID"}), 404
+    print('данные посланы')
+    return jsonify({
+        "uuid": uuid,
+        "grades": grades_result,
+        "absences": absences_result
+    }), 200
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8880)
