@@ -9,6 +9,7 @@ import uuid
 from pyrogram.errors import PeerIdInvalid
 import pytz
 import datetime
+from collections import Counter
 TIMEZONE = pytz.timezone('Asia/Yekaterinburg')
 # Загрузка данных из файла .env
 load_dotenv("databasetg.env")
@@ -114,21 +115,20 @@ async def register_user(telegram_id):
 
 async def check_for_updates():
     """Асинхронная функция для проверки изменений в базе данных и отправки уведомлений."""
-    print("Функция check_for_updates запущена")  # Отладочное сообщение
+    print("Функция check_for_updates запущена")
 
     async with aiosqlite.connect("big_data.db") as conn:
         last_grades = {}
         last_absences = {}
 
         while True:
-            print("Начало цикла проверки изменений")  # Отладочное сообщение
+            print("Начало цикла проверки изменений")
 
             # Проверяем изменения в таблице grades
             async with conn.execute("SELECT uuid, subject, grade FROM grades") as cursor:
                 grades = await cursor.fetchall()
-                # print(f"Текущие оценки из базы: {grades}")  # Отладочное сообщение
                 for uuid, subject, grade in grades:
-                    # --- Validation Start ---
+                    # Валидация
                     if not isinstance(uuid, str) or not uuid:
                         print(f"Ошибка валидации: Неверный формат UUID '{uuid}' для предмета '{subject}'. Пропускаем строку.")
                         continue
@@ -141,80 +141,76 @@ async def check_for_updates():
 
                     current_grades = []
                     try:
-                        current_grades = list(map(int, grade.split()))  # Преобразуем строку в список оценок
+                        current_grades = list(map(int, grade.split()))
                     except ValueError:
                         print(f"Ошибка валидации: Неверный формат оценки '{grade}' для UUID '{uuid}', предмет '{subject}'. Содержит нечисловые значения. Пропускаем строку.")
                         continue
+
+                    # Получаем предыдущие оценки, если их нет — пустой список
                     previous_grades_list = last_grades.get((uuid, subject), [])
-                    # Сравниваем наборы оценок для обнаружения любых изменений
-                    current_grades_set = set(current_grades)
-                    previous_grades_set = set(previous_grades_list)
 
-                    if current_grades_set != previous_grades_set:
-                        added_grades = list(current_grades_set - previous_grades_set)
-                        removed_grades = list(previous_grades_set - current_grades_set)
+                    # Проверяем, были ли оценки ранее (не отправляем уведомление при первой загрузке)
+                    if (uuid, subject) in last_grades:
+                        # Используем Counter для сравнения с учетом дубликатов
+                        previous_counter = Counter(previous_grades_list)
+                        current_counter = Counter(current_grades)
+                        added = current_counter - previous_counter
+                        removed = previous_counter - current_counter
 
-                        message_parts = [f"Изменения по предмету **{subject}**:"]
-                        if added_grades:
-                            message_parts.append(f"Добавлены оценки: __{' '.join(map(str, sorted(added_grades)))}__")
-                        if removed_grades:
-                            message_parts.append(f"Удалены оценки: __{' '.join(map(str, sorted(removed_grades)))}__")
-                        # Fallback if sets differ but no specific add/remove detected (e.g., order change only, though unlikely with sets)
-                        if not added_grades and not removed_grades:
-                             grades_text = ' '.join(map(str, current_grades)) if current_grades else '(оценок нет)'
-                             message_parts.append(f"Текущие оценки: __{grades_text}__")
+                        if added or removed:
+                            message_parts = [f"Изменения по предмету **{subject}**:"]
+                            if added:
+                                added_list = list(added.elements())
+                                message_parts.append(f"Добавлены оценки: __{' '.join(map(str, added_list))}__")
+                            if removed:
+                                removed_list = list(removed.elements())
+                                message_parts.append(f"Удалены оценки: __{' '.join(map(str, removed_list))}__")
+                            notification_text = "\n".join(message_parts)
+                            print(f"Отправка уведомления: {notification_text}")
 
-                        notification_text = "\n".join(message_parts)
-                        print(f"Отправка уведомления: {notification_text}") # Отладочное сообщение
+                            try:
+                                async with conn.execute("SELECT telegram_id FROM users WHERE uuid = ?", (uuid,)) as user_cursor:
+                                    user_result = await user_cursor.fetchone()
+                                    if user_result:
+                                        telegram_id = user_result[0]
+                                        asyncio.run_coroutine_threadsafe(
+                                            app.send_message(
+                                                chat_id=telegram_id,
+                                                text=notification_text
+                                            ),
+                                            asyncio.get_event_loop()
+                                        )
+                            except PeerIdInvalid:
+                                print(f"Ошибка: пользователь с UUID {uuid} не взаимодействовал с ботом.")
 
-                        try:
-                            async with conn.execute("SELECT telegram_id FROM users WHERE uuid = ?", (uuid,)) as user_cursor:
-                                user_result = await user_cursor.fetchone()
-                                if user_result:
-                                    telegram_id = user_result[0]
-                                    asyncio.run_coroutine_threadsafe(
-                                        app.send_message(
-                                            chat_id=telegram_id,
-                                            text=notification_text
-                                        ),
-                                        asyncio.get_event_loop()
-                                    )
-                        except PeerIdInvalid:
-                            print(f"Ошибка: пользователь с UUID {uuid} не взаимодействовал с ботом.")
-
-                    # Обновляем кэш ВСЕГДА после обработки записи, чтобы отразить текущее состояние из БД
+                    # Всегда обновляем кэш после обработки
                     last_grades[(uuid, subject)] = current_grades
 
-            # Проверяем изменения в таблице absences
+            # Проверяем изменения в таблице absences (эта часть остается без изменений)
             async with conn.execute("SELECT uuid, subject, absence_count FROM absences") as cursor:
                 absences = await cursor.fetchall()
-                # print(f"Текущие пропуски из базы: {absences}")  # Отладочное сообщение
                 for uuid, subject, absence_count in absences:
-                    previous_absence_count = last_absences.get((uuid, subject), None) # Используем None как маркер отсутствия записи
-                    # Проверяем, изменилось ли количество пропусков
+                    previous_absence_count = last_absences.get((uuid, subject), None)
                     if previous_absence_count is None or previous_absence_count != absence_count:
-                        # Отправляем уведомление только если это не первая проверка для этого предмета ИЛИ если значение изменилось
                         if previous_absence_count is not None:
-                             print(f"Изменение в пропусках: {uuid}, {subject}, было {previous_absence_count}, стало {absence_count}") # Отладочное сообщение
-                             try:
-                                 async with conn.execute("SELECT telegram_id FROM users WHERE uuid = ?", (uuid,)) as user_cursor:
-                                     user_result = await user_cursor.fetchone()
-                                     if user_result:
-                                         telegram_id = user_result[0]
-                                         asyncio.run_coroutine_threadsafe(
-                                             app.send_message(
-                                                 chat_id=telegram_id,
-                                                 text=f"Обновлены пропуски по предмету **{subject}**: __{absence_count}__"
-                                             ),
-                                             asyncio.get_event_loop()
-                                         )
-                             except PeerIdInvalid:
-                                 print(f"Ошибка: пользователь с UUID {uuid} не взаимодействовал с ботом.")
-                    # Обновляем кэш ВСЕГДА после обработки записи
+                            print(f"Изменение в пропусках: {uuid}, {subject}, было {previous_absence_count}, стало {absence_count}")
+                            try:
+                                async with conn.execute("SELECT telegram_id FROM users WHERE uuid = ?", (uuid,)) as user_cursor:
+                                    user_result = await user_cursor.fetchone()
+                                    if user_result:
+                                        telegram_id = user_result[0]
+                                        asyncio.run_coroutine_threadsafe(
+                                            app.send_message(
+                                                chat_id=telegram_id,
+                                                text=f"Обновлены пропуски по предмету **{subject}**: __{absence_count}__"
+                                            ),
+                                            asyncio.get_event_loop()
+                                        )
+                            except PeerIdInvalid:
+                                print(f"Ошибка: пользователь с UUID {uuid} не взаимодействовал с ботом.")
                     last_absences[(uuid, subject)] = absence_count
 
-            # Задержка перед следующей проверкой
-            print("Задержка на 10 секунд")  # Отладочное сообщение
+            print("Задержка на 10 секунд")
             await asyncio.sleep(10)
 
 
